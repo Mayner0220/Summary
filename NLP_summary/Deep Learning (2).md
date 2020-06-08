@@ -529,3 +529,139 @@ _________________________________________________________________
 
 ### 6.4 컴파일(Compile)과 훈련(Training)
 
+- compile(): 모델은 기계가 이해할 수 있도록 컴파일한다.
+  오차 함수와 최적화 방법, 메트릭 함슈룰 선택할 수 있다.
+
+```python
+ 이 코드는 뒤의 텍스트 분류 챕터의 스팸 메일 분류하기 실습 코드를 갖고온 것임.
+from tensorflow.keras.layers import SimpleRNN, Embedding, Dense
+from tensorflow.keras.models import Sequential
+max_features = 10000
+
+model = Sequential()
+model.add(Embedding(max_features, 32))
+model.add(SimpleRNN(32)) #RNN에 대한 설명은 뒤의 챕터에서 합니다.
+model.add(Dense(1, activation='sigmoid'))
+model.compile(optimizer='rmsprop', loss='binary_crossentropy', metrics=['acc'])
+```
+
+위 코드는 임베딩층, 은닉층, 출력층을 추가하여 모델을 설계한 후에, 마지막으로 컴파일 하는 과정을 보여준다. 
+
+- optimizer: 훈련 과정을 설정하는 옵티마이저를 설정한다.
+  'adam'이나 'sgd'와 같이 문자열로 지정할 수 있다.
+- loss: 훈련 과정에서 사용할 손실 함수(loss function)를 설정한다.
+- metrics: 훈련을 모니터링하기 위한 지표를 선택한다.
+
+대표적으로 사용되는 손실 함수와 활성화 함수의 조합은 아래와 같다.
+더 많은 함수는 케라스 공식문서에서 확인 가능하다.
+
+|   문제 유형    |                  손실 함수명                   | 출력층의 활성화 함수명 |                          참고 설명                           |
+| :------------: | :--------------------------------------------: | :--------------------: | :----------------------------------------------------------: |
+|    회귀문제    |       mean_squared_error(평균 제곱 오차)       |           -            |                              -                               |
+| 다중클래스분류 | categorical_crossentropy(범주형 교차 엔트로피) |       소프트맥스       |                로이터 뉴스 분류하기 실습 참고                |
+| 다중클래스분류 |        sparse_categorical_crossentropy         |       소프트맥스       | 범주형 교차 엔트로피와 동일하지만 이 경우 원-핫 인코딩이 된 상태일 필요없이 정수 인코딩 된 상태에서 수행 가능 |
+|    이진분류    |    binary_crossentropy(이항 교차 엔트로피)     |       시그모이드       |    스팸 메일 분류하기, IMDB 리뷰 감성 분류하기 실습 참고     |
+
+- fit(): 모델을 학습한다.
+  모델이 오차로부터 매개 변수를 업데이트 시키는 과정을 학습, 훈련 또는 적합(fitting)이라고 하기도 하는데, 모델이 데이터에 적합해가는 과정이기 때문이다.
+  그런 의미에서 fit()은 모델의 훈련을 시작한다는 의미를 가지고 있다.
+
+```python
+# 위의 compile() 코드의 연장선상인 코드
+model.fit(X_train, y_train, epochs=10, batch_size=32)
+```
+
+- 첫번째 인자 = 훈련 데이터에 해당
+- 두번째 인자 = 지도 학습에서 레이블 데이터에 해당
+- epochs = 에포크
+  에포크 1은 전체 데이터를 한 차례 훑고 지나갔음을 의미, 정수값 기재 필요, 총 훈련 횟수를 정의
+- batch_size = 배치 크기
+  기본값은 32, 미니 배치 경사 하강법을 사용하고 싶지 않을 경우에는 batch_size=None을 기재한다.
+
+```python
+model.fit(X_train, y_train, epochs=10, batch_size=32, verbose=0, validation_data(X_val, y_val))
+```
+
+- validation_data(x_val, y_val) = 검증 데이터(validation data)를 사용한다.
+  검증 데이터를 사용하면 각 에포크마다 검증 데이터의 정확도도 함께 출력되는데, 이 정확도는 훈련이 잘 되고 있는지를 보여줄 뿐이며 실제로 모델이 검증 데이터를 학습하지는 않는다.
+  검증 데이터의 loss가 낮아지다가 높아지기 시작하면 이는 과적합(overfitting)의 신호이다.
+- validation_split = validation_data 대신 사용할 수 있다.
+  검증 데이터를 사용하는 것은 동일하지만, 별도로 존재하는 검증 데이터를 주는 것이 아니라 X_train과 y_train에서 일정 비율을 분리하여 이를 검증 데이터로 사용한다.
+  역시나 훈련 자체에는 반영되지 않고 훈련 과정을 지켜보기 위한 용도로 사용된다.
+  아래는 validation_data 대신에 validation_split을 사용했을 경우를 보여준다.
+
+```python
+# 훈련 데이터의 20%를 검증 데이터로 사용.
+model.fit(X_train, y_train, epochs=10, batch_size=32, verbose=0, validation_split=0.2)
+```
+
+- verbose = 학습 중 출력되는 문구를 설정한다.
+  0: 아무 것도 출력하지 않는다.
+  1: 훈련의 진행도를 보여주는 진행 막대를 보여준다.
+  2: 미니 배치마다 손실 정보를 출력한다.
+
+아래는 verbose의 값이 1일 때와 2일 때를 보여준다.
+
+```python
+# verbose = 1일 경우.
+Epoch 88/100
+7/7 [==============================] - 0s 143us/step - loss: 0.1029 - acc: 1.0000
+```
+
+```python
+# verbose = 2일 경우.
+Epoch 88/100
+ - 0s - loss: 0.1475 - acc: 1.0000
+```
+
+---
+
+### 6.5 평가(Evaluation)와 예측(Prediction)
+
+- evaluate(): 테스트 데이터를 통해 학습한 모델에 대한 정확도를 평가한다.
+
+```python
+# 위의 fit() 코드의 연장선상인 코드
+model.evaluate(X_test, y_test, batch_size=32)
+```
+
+- 첫번째 인자 = 테스트 데이터에 해당
+- 두번째 인자 = 지도 학습에서 레이블 데이터에 해당
+- batch_size = 배치 크기
+- predict(): 임의의 입력에 대한 모델의 출력값을 확인
+
+```python
+# 위의 fit() 코드의 연장선상인 코드
+model.predict(X_input, batch_size=32)
+```
+
+- 첫번째 인자 = 예측하고자 하는 데이터
+- batch_size = 배치 크기
+
+---
+
+### 6.6 모델의 저장(Save)과 로드(Load)
+
+복습응을 위한 스터디나 실제 어플리케이션 개발 단계에서 구현한 모델을 저장하고 불러오는 일은 중요하다.
+모델을 저장한다는 것은 학습이 끝난 신경망의 구조를 보존하고 계속해서 사용할 수 있다는 의미이다.
+
+- save(): 인공 신경망 모델을 hdf5 파일에 저장한다.
+
+```python
+model.save("model_name.h5")
+```
+
+- load_model(): 저장해둔 모델을 불러온다.
+
+```python
+from tensorflow.keras.models import load_model
+model = load_model("model_name.h5")
+```
+
+---
+
+### 6.7 함수형 API(functional API)
+
+대부분의 실습은 위에서 배운 Sequential API를 통해 이루어진다.
+위의 코드들은 사용하기에 매우 간단하지만, 복잡한 모델을 설계하기 위해서는 부족함이 있다.
+
