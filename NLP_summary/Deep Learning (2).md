@@ -665,3 +665,187 @@ model = load_model("model_name.h5")
 대부분의 실습은 위에서 배운 Sequential API를 통해 이루어진다.
 위의 코드들은 사용하기에 매우 간단하지만, 복잡한 모델을 설계하기 위해서는 부족함이 있다.
 
+sequential API는 여러층을 공유하거나 다양한 종류의 입력과 출력을 사용하는 등의 복잡한 모델을 만드는 일을 하기에는 한계가 있다.
+이번에는 복잡한 모델을 만드는 일을 하기에는 한계가 있다.
+이번에는 복잡한 모델을 생성할 수 있는 방식인 functional API(함수형 API)에 대해서 알아보자.
+
+1. sequential API로 만든 모델
+   두 가지 API의 차이를 이해하기 위해서 앞서 배운 sequential API를 사용하여 기본적인 모델을 만들어보자.
+
+   ```python
+   # 이 코드는 소프트맥스 회귀 챕터에서 가져온 코드임.
+   from tensorflow.keras.models import Sequential
+   from tensorflow.keras.layers import Dense
+   model=Sequential()
+   model.add(Dense(3, input_dim=4, activation='softmax'))
+   ```
+
+   위와 같은 방식은 직관적이고 편리하지만 단순히 층을 쌓는 것만으로는 구현할 수 없는 복잡한 인공 신경망을 구현할 수 없다.
+
+2. functional API로 만든 모델
+   functional API는 각 층을 일종의 함수(function)로서 정의한다.
+   그리고 각 함수를 조합하기 위한 연산자들을 제공하는데, 이를 이용하여 신경망을 설계한다.
+   functional API로 FFNN, RNN 등 다양한 모델을 만들면서 기존의 sequential API와의 차이를 이해해보자.
+
+   1. 전결한 피드 포워드 신경망(Fully-connected FFNN)
+      sequential API와는 다르게 functional API에서는 입력 데이터의 크기(shape)를 인자로 입력층을 정의해주어야 한다.
+      여기서는 입력의 차원이 1인 전결합 피드 포워드 신경망(Fully-connected FFNN)을 만든다고 가정해보자.
+
+      ```python
+      from tensorflow.keras.layers import Input
+      # 텐서를 리턴한다.
+      inputs = Input(shape=(10,))
+      ```
+
+      위의 코드는 10개의 입력을 받는 입력층을 보여준다.
+      이제 위의 코드에 은닉층과 출력층을 추가해보자.
+
+      ```python
+      from tensorflow.keras.layers import Input, Dense
+      inputs = Input(shape=(10,))
+      hidden1 = Dense(64, activation='relu')(inputs)
+      hidden2 = Dense(64, activation='relu')(hidden1)
+      output = Dense(1, activation='sigmoid')(hidden2)
+      ```
+
+      이제 위의 코드를 하나의 모델로 구성해보자.
+      이는 Model에 입력 텐서와 출력 텐서를 정의하여 완성된다.
+
+      ```python
+      from tensorflow.keras.layers import Input, Dense
+      from tensorflow.keras.models import Model
+      inputs = Input(shape=(10,))
+      hidden1 = Dense(64, activation='relu')(inputs)
+      hidden2 = Dense(64, activation='relu')(hidden1)
+      output = Dense(1, activation='sigmoid')(hidden2)
+      model = Model(inputs=inputs, outputs=output)
+      ```
+
+      지금까지의 내용을 정리하면 다음과 같다.
+
+      - Input() 함수에 입력의 크기를 정의한다.
+      - 이전층을 다음층 함수의 입력으로 사용하고, 변수에 할당한다.
+      - Model() 함수에 입력과 출력을 정의한다.
+
+      이제 이를 model로 저장하면 sequential API를 사용할 때와 마찬가지로 model.complie, model.fit 등을 사용 가능하다.
+
+      ```python
+      model.compile(optimizer='rmsprop', loss='categorical_crossentropy', metrics=['accuracy'])
+      model.fit(data, labels)
+      ```
+
+      이번에는 변수명을 달리해서 FFNN을 만들어보자.
+      이번에는 은닉층과 출력층의 변수를 전부 x로 통일했다.
+
+      ```python
+      inputs = Input(shape=(10,))
+      x = Dense(8, activation="relu")(inputs)
+      x = Dense(4, activation="relu")(x)
+      x = Dense(1, activation="linear")(x)
+      model = Model(inputs, x)
+      ```
+
+      이번에는 위에서 배운 내용을 바탕으로 선형 회귀와 로지스틱 회귀를 functional API로 구현해보자.
+
+   2. 선형 회귀(Linear Regression)
+
+      ```python
+      from tensorflow.keras.layers import Input, Dense
+      from tensorflow.keras.models import Model
+      
+      inputs = Input(shape=(3,))
+      output = Dense(1, activation='linear')(inputs)
+      linear_model = Model(inputs, output)
+      
+      linear_model.compile(optimizer='sgd', loss='mse')
+      linear_model.fit(x=dat_test, y=y_cts_test, epochs=50, verbose=0)
+      linear_model.fit(x=dat_test, y=y_cts_test, epochs=1, verbose=1)
+      ```
+
+   3. 로지스틱 회귀(Logistic Regression)
+
+      ```python
+      from tensorflow.keras.layers import Input, Dense
+      from tensorflow.keras.models import Model
+      
+      inputs = Input(shape=(3,))
+      output = Dense(1, activation='sigmoid')(inputs)
+      logistic_model = Model(inputs, output)
+      
+      logistic_model.compile(optimizer='sgd', loss = 'binary_crossentropy', metrics=['accuracy'])
+      logistic_model.optimizer.lr = 0.001
+      logistic_model.fit(x=dat_train, y=y_classifier_train, epochs = 5, validation_data = (dat_test, y_classifier_test))
+      ```
+
+   4. 다중 입력을 받는 모델(model that accepts multiple inputs)
+      functional API를 사용하면 아래와 같이 다중 입력과 다중 출력을 가지는 모델도 만들 수 있다.
+
+      ```python
+      # 최종 완성된 다중 입력, 다중 출력 모델의 예
+      model=Model(inputs=[a1, a2], outputs=[b1, b2, b3]
+      ```
+
+      이번에는 다중 입력을 받는 모델을 입력층부터 출력층까지 설계해보자.
+
+      ```python
+      from tensorflow.keras.layers import Input, Dense, concatenate
+      from tensorflow.keras.models import Model
+      
+      # 두 개의 입력층을 정의
+      inputA = Input(shape=(64,))
+      inputB = Input(shape=(128,))
+      
+      # 첫번째 입력층으로부터 분기되어 진행되는 인공 신경망을 정의
+      x = Dense(16, activation="relu")(inputA)
+      x = Dense(8, activation="relu")(x)
+      x = Model(inputs=inputA, outputs=x)
+      
+      # 두번째 입력층으로부터 분기되어 진행되는 인공 신경망을 정의
+      y = Dense(64, activation="relu")(inputB)
+      y = Dense(32, activation="relu")(y)
+      y = Dense(8, activation="relu")(y)
+      y = Model(inputs=inputB, outputs=y)
+      
+      # 두개의 인공 신경망의 출력을 연결(concatenate)
+      result = concatenate([x.output, y.output])
+      
+      # 연결된 값을 입력으로 받는 밀집층을 추가(Dense layer)
+      z = Dense(2, activation="relu")(result)
+      # 선형 회귀를 위해 activation=linear를 설정
+      z = Dense(1, activation="linear")(z)
+      
+      # 결과적으로 이 모델은 두 개의 입력층으로부터 분기되어 진행된 후 마지막에는 하나의 출력을 예측하는 모델이 됨.
+      model = Model(inputs=[x.input, y.input], outputs=z)
+      ```
+
+   5. RNN(Recurrence Neural Network) 은닉층 사용하기
+      이번에는 RNN 은닉층을 가지는 모델을 설계해보자.
+      여기서는 하나의 특상(feature)에 50개의 시점(time-step)을 입력으로 받는 모델을 설계해보자.
+
+      ```python
+      from tensorflow.keras.layers import Input, Dense, LSTM
+      from tensorflow.keras.models import Model
+      inputs = Input(shape=(50,1))
+      lstm_layer = LSTM(10)(inputs) # RNN의 일종인 LSTM을 사용
+      x = Dense(10, activation='relu')(lstm_layer)
+      output = Dense(1, activation='sigmoid')(x)
+      model = Model(inputs=inputs, outputs=output)
+      ```
+
+   6. 다르게 보이지만 동일한 표기
+      케라스의 functional API가 익숙하지 않은 상태에서 functional API를 사용한 코드를 보다가 혼동할 수 있는 점이 한 가지 있다.
+      바로 동일한 의미를 가지지만, 하나의 줄로 표현할 수 있는 코드를 두 개의 줄로 표현한 경우이다.
+
+      ```python
+      encoder = Dense(128)(input)
+      ```
+
+      위 코드는 아래와 같이 두 개의 줄로 표현할 수 있다.
+
+      ```python
+      encoder = Dense(128)
+      encoder(input)
+      ```
+
+      
+
