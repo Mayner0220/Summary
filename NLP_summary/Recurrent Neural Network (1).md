@@ -1,17 +1,17 @@
-# Recurrent Neural Network
+# Recurrent Neural Network (1)
 
 source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs.net/22888, https://wikidocs.net/22889, https://wikidocs.net/46496, https://wikidocs.net/45101, https://wikidocs.net/48649
 
 ---
 
-### 9. 순환 신경망(Recurrent Neural Network)
+### 0. 순환 신경망(Recurrent Neural Network)
 
 피드 포워드 신경망은 입력의 길이가 고정되어 있어 NLP를 위한 신경망으로는 한계가 있었다.
 결국 다양한 길이의 입력 시퀀스를 처리할 수 있는 인공 신경망이 필요하게 되었는데, NLP에 대표적으로 사용되는 인공 신경망인 RNN, LSTM 등에 대해서 알아보자.
 
 ---
 
-### 9.1 RNN
+### 1.1 RNN
 
 RNN(Recurrent Neural Network)은 시퀀스(Sequence) 모델이다.
 입력과 출력을 시퀀스 단위로 처리하는 모델이다.
@@ -138,7 +138,7 @@ LSTM이나 GRU 또한 근본적으로 RNN에 속한다.
 
 ---
 
-### 9.2 파이썬으로 RNN 구현하기
+### 1.2 파이썬으로 RNN 구현하기
 
 직접 Numpy로 RNN층을 구현해보자.
 앞서 메모리 셀에서 은닉 상태를 계산하는 식을 다음과 같이 정의했다.
@@ -155,4 +155,111 @@ for input_t in input_length: # 각 시점마다 입력을 받는다.
     output_t = tanh(input_t, hidden_state_t) # 각 시점에 대해서 입력과 은닉 상태를 가지고 연산
     hidden_state_t = output_t # 계산 결과는 현재 시점의 은닉 상태가 된다.
 ```
+
+우선 t 시점의 은닉 상태를 hidden_state_t라는 변수로 선언하였고, 입력 데이터의 길이를 input_length로 선언하였다.
+이 경우, 입력 데이터의 길이는 곧 총 시점의 수(timesteps)가 된다.
+그리고 t 시점의 입력값을 input_t로 선언하였다.
+각 메모리 셀은 각 시점마다 input_t와 hidden_sate_t(이전 상태의 은닉 상태)를 입력으로 활성화 함수인 하이퍼볼릭탄젠트 함수를 통해 현 시점의 hidden_state_t를 계산한다.
+
+의사 코드를 통해 간단히 개념 정립을 해 보았다.
+이제 RNN 층을 실제 동작되는 코드로 구현해보자.
+아래의 코드는 이해를 돕기 위해 (timesteps, input_dim) 크기의 2D 텐서를 입력으로 받았다고 가정하였으나, 실제로 케라스에서는 (batch_size, timesteps, input_dim)의 크기의 3D 텐서를 입력으로 받는 것을 기억하자.
+
+```python
+import numpy as np
+
+timesteps = 10 # 시점의 수. NLP에서는 보통 문장의 길이가 된다.
+input_dim = 4 # 입력의 차원. NLP에서는 보통 단어 벡터의 차원이 된다.
+hidden_size = 8 # 은닉 상태의 크기. 메모리 셀의 용량이다.
+
+inputs = np.random.random((timesteps, input_dim)) # 입력에 해당되는 2D 텐서
+
+hidden_state_t = np.zeros((hidden_size,)) # 초기 은닉 상태는 0(벡터)로 초기화
+# 은닉 상태의 크기 hidden_size로 은닉 상태를 만듬.
+```
+
+우선 시점, 입력의 차원, 은닉 상태의 크기, 그리고 초기 은닉 상태를 정의하였다.
+현재 초기 은닉 상태는 0의 값을 가지는 벡터로 초기화가 된 상태이다.
+초기 은닉 상태를 출력해보자.
+
+```python
+print(hidden_state_t)
+# 8의 크기를 가지는 은닉 상태. 현재는 초기 은닉 상태로 모든 차원이 0의 값을 가짐.
+```
+
+```python
+[0. 0. 0. 0. 0. 0. 0. 0.]
+```
+
+은닉 상태의 크기를 8로 정의하였으므로 8의 차원을 가지는 0의 값으로 구성된 벡터가 출력된다.
+이제 가중치와 편향을 정의한다.
+
+```python
+Wx = np.random.random((hidden_size, input_dim))  # (8, 4)크기의 2D 텐서 생성. 입력에 대한 가중치.
+Wh = np.random.random((hidden_size, hidden_size)) # (8, 8)크기의 2D 텐서 생성. 은닉 상태에 대한 가중치.
+b = np.random.random((hidden_size,)) # (8,)크기의 1D 텐서 생성. 이 값은 편향(bias).
+```
+
+가중치와 편향을 각 크기에 맞게 정의하였다.
+가중치와 편향의 크기를 출력해보자.
+
+```python
+print(np.shape(Wx))
+print(np.shape(Wh))
+print(np.shape(b))
+```
+
+```python
+(8, 4)
+(8, 8)
+(8,)
+```
+
+각 가중치와 편향의 크기는 다음과 같다.
+Wx는 (은닉 상태의 크기 × 입력의 차원), Wh는 (은닉 상태의 크기 × 은닉 상태의 크기), b는 (은닉 상태의 크기)의 크기를 가진다.
+이제 모든 시점의 은닉 상태를 출력한다고 가정하고, RNN 층을 동작 시켜보자.
+
+```python
+total_hidden_states = []
+
+# 메모리 셀 동작
+for input_t in inputs: # 각 시점에 따라서 입력값이 입력됨.
+  output_t = np.tanh(np.dot(Wx,input_t) + np.dot(Wh,hidden_state_t) + b) # Wx * Xt + Wh * Ht-1 + b(bias)
+  total_hidden_states.append(list(output_t)) # 각 시점의 은닉 상태의 값을 계속해서 축적
+  print(np.shape(total_hidden_states)) # 각 시점 t별 메모리 셀의 출력의 크기는 (timestep, output_dim)
+  hidden_state_t = output_t
+
+total_hidden_states = np.stack(total_hidden_states, axis = 0) 
+# 출력 시 값을 깔끔하게 해준다.
+
+print(total_hidden_states)
+# (timesteps, output_dim)의 크기. 이 경우 (10, 8)의 크기를 가지는 메모리 셀의 2D 텐서를 출력.
+```
+
+```python
+(1, 8)
+(2, 8)
+(3, 8)
+(4, 8)
+(5, 8)
+(6, 8)
+(7, 8)
+(8, 8)
+(9, 8)
+(10, 8)
+[[0.85575076 0.71627213 0.87703694 0.83938496 0.81045543 0.86482715 0.76387233 0.60007514]
+ [0.99982366 0.99985897 0.99928638 0.99989791 0.99998252 0.99977656 0.99997677 0.9998397 ]
+ [0.99997583 0.99996057 0.99972541 0.99997993 0.99998684 0.99954936 0.99997638 0.99993143]
+ [0.99997782 0.99996494 0.99966651 0.99997989 0.99999115 0.99980087 0.99999107 0.9999622 ]
+ [0.99997231 0.99996091 0.99976218 0.99998483 0.9999955  0.99989239 0.99999339 0.99997324]
+ [0.99997082 0.99998754 0.99962158 0.99996278 0.99999331 0.99978731 0.99998831 0.99993414]
+ [0.99997427 0.99998367 0.99978331 0.99998173 0.99999579 0.99983689 0.99999058 0.99995531]
+ [0.99992591 0.99996115 0.99941212 0.99991593 0.999986   0.99966571 0.99995842 0.99987795]
+ [0.99997139 0.99997192 0.99960794 0.99996751 0.99998795 0.9996674 0.99998177 0.99993016]
+ [0.99997659 0.99998915 0.99985392 0.99998726 0.99999773 0.99988295 0.99999316 0.99996326]]
+```
+
+---
+
+### 1.3 BPTT(Backpropagation through time, BPTT)
 
