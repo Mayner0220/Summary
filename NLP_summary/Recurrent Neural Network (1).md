@@ -263,3 +263,80 @@ print(total_hidden_states)
 
 ### 1.3 BPTT(Backpropagation through time, BPTT)
 
+RNN도 다른 신경망과 마찬가지로 역전파를 통해서 학습을 진행한다.
+피드 포워드 신경망의 역전파와 다른 점이 있다면, RNN은 전체 시점에 대해서 네트워크를 펼친 다음에 역전파를 사용하며 모든 시점에 대해서 가중치를 공유하고 있다는 점이다.
+RNN은 이러한 역전파과 과정을 BPTT(Backpropagation through time)이라고 부른다.
+
+---
+
+### 1.4 깊은 순환 신경망(Deep Recurrent Neural Network)
+
+![img](https://wikidocs.net/images/page/22886/rnn_image4.5_finalPNG.PNG)
+
+앞서 RNN도 다수의 은닉층을 가질 수 있다고 한적이 있다.
+위의 그림은 순환신경망에서 은닉층이 1개 더 추가되어 은닉층이 2개인 깊은(deep) 순환 신경망의 모습을 보여준다.
+은닉층을 2개 추가하는 경우 코드는 아래와 같다.
+
+```python
+model = Sequential()
+model.add(SimpleRNN(hidden_size, return_sequences = True))
+model.add(SimpleRNN(hidden_size, return_sequences = True))
+```
+
+위의 코드에서 첫번째 은닉층은 다음 은닉층이 존재하므로 return_sequences = True를 설정하여 모든 시점에 대해서 은닉 상태 값을 다음 은닉층으로 보내주고 있다.
+
+---
+
+### 1.5 양방향 순환 신경망(Bidirectional Recurrent Neural Network)
+
+양방향 순환 신경망은 시점 t에서의 출력값을 예측할 때 이전 시점의 데이터뿐만 아니라, 이후 데이터로도 예측할 수 있다는 아이디어에 기반한다.
+
+영어 빈칸 채우기 문제에 비유하여 보자.
+
+```
+Exercise is very effective at [          ] belly fat.
+
+1) reducing
+2) increasing
+3) multiplying
+```
+
+'운동은 복부 지방을 [ ] 효과적이다'라는 영어 문장이고, 정답은 reducing(줄이는 것)이다.
+그런데 위의 영어 빈 칸 채우기 문제를 잘 생각해보면 정답을 찾기 위해서는 이전에 나온 단어들만으로는 부족하다.
+목적어인 belly fat(복부 지방)를 모르는 상태라면 정답을 결정하기가 어렵다.
+
+즉, RNN이 과거 시점(time step)의 데이터들을 참고해서, 찾고자하는 정답을 예측하지만 실제 문제에서는 과거 시점의 데이터만 고려하는 것이 아니라 향후 시점의 데이터에 힌트가 있는 경우도 많다.
+그래서 이전 시점의 데이터뿐만 아니라, 이후 시점의 데이터도 힌트로 활용하기 위해서 고안된 것이 양방향 RNN이다.
+
+![img](https://wikidocs.net/images/page/22886/rnn_image5_ver2.PNG)
+
+양방향 RNN은 하나의 출력값을 예측하기 위해 기본적으로 두 개의 메모리 셀을 사용한다.
+첫번째 메모리 셀은 앞에서 배운 것처럼 앞 시점의 은닉 상태(Forward States)를 전달받아 현재의 은닉 상태를 계산한다.
+위의 그림에서는 주황색 메모리 셀에 해당된다.
+두번째 메모리 셀은 앞에서 배운 것과는 다르다.
+앞 시점의 은닉 상태가 아니라 뒤 시점의 은닉 상태(Backward States)를 전달 받아 현재의 은닉 상태를 계산한다.
+위의 그림에서는 초록색 메모리 셀에 해당된다.
+그리고 이 두 개의 값 모두가 출력층에서 출력값을 예측하기 위해 사용됩니다.
+
+```python
+model = Sequential()
+model.add(Bidirectional(SimpleRNN(hidden_size, return_sequences = True), input_shape=(timesteps, input_dim)))
+```
+
+물론, 양방향 RNN도 다수의 은닉층을 가질 수 있다.
+아래의 그림은 양방향 순환 신경망에서 은닉층이 1개 더 추가되어 은닉층이 2개인 깊은(deep) 양방향 순환 신경망의 모습을 보여준다.
+
+![img](https://wikidocs.net/images/page/22886/rnn_image6_ver3.PNG)
+
+다른 인공 신경망 모델들도 마찬가지이지만, 은닉층을 무조건 추가한다고 해서 모델의 성능이 좋아지는 것은 아니다.
+은닉층을 추가하면, 학습할 수 있는 양이 많아지지만 또한 반대로 훈련 데이터 또한 그만큼 많이 필요하다.
+아래의 코드는 은닉층이 4개인 경우를 보여준다.
+
+```python
+model = Sequential()
+model.add(Bidirectional(SimpleRNN(hidden_size, return_sequences = True), input_shape=(timesteps, input_dim)))
+model.add(Bidirectional(SimpleRNN(hidden_size, return_sequences = True)))
+model.add(Bidirectional(SimpleRNN(hidden_size, return_sequences = True)))
+model.add(Bidirectional(SimpleRNN(hidden_size, return_sequences = True)))
+```
+
