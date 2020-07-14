@@ -296,5 +296,23 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
 
 ### 5.3 LSTM을 이용하여 텍스트 생성하기
 
+이번에는 LSTM을 통해 보다 많은 데이터로 텍스트를 생성해보자.
+본질적으로 앞에서 한 것과 동일한 내용이다.
 
+1. 데이터에 대한 이해와 전처리
+   사용항 데이터는 뉴욕 타임즈 기사의 제목이다.
+   아래의 링크에서 ArticlesApril2018.csv 데이터를 다운로드한다.
+
+   - 파일 다운로드 링크: https://www.kaggle.com/aashita/nyt-comments
+
+   ```python
+   import pandas as pd
+   from string import punctuation
+   from tensorflow.keras.preprocessing.text import Tokenizer
+   from tensorflow.keras.preprocessing.sequence import pad_sequences
+   import numpy as np
+   from tensorflow.keras.utils import to_categorical
+   ```
+
+   
 
