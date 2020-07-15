@@ -314,5 +314,5 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
    from tensorflow.keras.utils import to_categorical
    ```
 
-   
+   다운로드한 훈련 데이터를 데이터프레임에 저장한다.
 
