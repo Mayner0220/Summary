@@ -316,3 +316,315 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
 
    다운로드한 훈련 데이터를 데이터프레임에 저장한다.
 
+   ```python
+   df=pd.read_csv('ArticlesApril2018.csv 파일의 경로')
+   df.head()
+   ```
+
+   열의 개수가 굉장히 많기에 한 눈에 보기 어렵다.
+   어떤 열이 있고, 열이 총 몇 개가 있는지 출력해보자.
+
+   ```python
+   print('열의 개수: ',len(df.columns))
+   print(df.columns)
+   ```
+
+   ```python
+   열의 개수:  15
+   Index(['articleID', 'articleWordCount', 'byline', 'documentType', 'headline',
+          'keywords', 'multimedia', 'newDesk', 'printPage', 'pubDate',
+          'sectionName', 'snippet', 'source', 'typeOfMaterial', 'webURL'], dtype='object')
+   ```
+
+   총 15개의 열이 존재한다.
+   여기서 사용할 열은 제목에 해당되는 headline 열이다.
+   Null 값이 있는지 확인해보자.
+
+   ```python
+   df['headline'].isnull().values.any()
+   ```
+
+   ```python
+   False
+   ```
+
+   Null 값은 별도로 없는 것으로 보인다.
+   headline 열에서 모든 신문 기사의 제목을 뽑아서 하나의 리스트로 저장해보자.
+
+   ```python
+   headline = [] # 리스트 선언
+   headline.extend(list(df.headline.values)) # 헤드라인의 값들을 리스트로 저장
+   headline[:5] # 상위 5개만 출력
+   ```
+
+   headline이라는 리스트에 모든 신문 기사의 제목을 저장했다.
+   저장한 리스트에서 상위 5개만 출력해보자.
+
+   ```python
+   ['Former N.F.L. Cheerleaders’ Settlement Offer: $1 and a Meeting With Goodell',
+    'E.P.A. to Unveil a New Rule. Its Effect: Less Science in Policymaking.',
+    'The New Noma, Explained',
+    'Unknown',
+    'Unknown']
+   ```
+
+   그런데 4번째, 5번째 샘프에 Unknown 값이 들어가 있다.
+   headline 전체에 걸쳐서 Unknown 값을 가진 샘플이 있을 것으로 추정된다.
+   비록 Null 값은 아니지만 지금 하고자 하는 실습에 되지 않는 노이즈 데이터이므로 제거해줄 필요가 있다.
+   제거하기 전에 현재 샘플의 개수를 확인해보고 제거 전, 후의 샘플의 개수를 비교해보자.
+
+   ```python
+   print('총 샘플의 개수 : {}'.format(len(headline)) # 현재 샘플의 개수
+   총 샘플의 개수 : 1324
+   ```
+
+   ```python
+   총 샘플의 개수 : 1324
+   ```
+
+   노이즈 데이터를 제거하기 전 데이터의 개수는 1,324이다.
+   즉, 신문 기사의 제목이 총 1,324개이다.
+
+   ```python
+   headline = [n for n in headline if n != "Unknown"] # Unknown 값을 가진 샘플 제거
+   print('노이즈값 제거 후 샘플의 개수 : {}'.format(len(headline)) # 제거 후 샘플의 개수
+   ```
+
+   ```python
+   노이즈값 제거 후 샘플의 개수 : 1214
+   ```
+
+   샘플의 수가 1,324에서 1,214로 110개의 샘플이 제거되었는데, 기존에 출력했던 5개의 샘플을 출력해보자.
+
+   ```python
+   headline[:5]
+   ```
+
+   ```python
+   ['Former N.F.L. Cheerleaders’ Settlement Offer: $1 and a Meeting With Goodell',
+    'E.P.A. to Unveil a New Rule. Its Effect: Less Science in Policymaking.',
+    'The New Noma, Explained',
+    'How a Bag of Texas Dirt  Became a Times Tradition',
+    'Is School a Place for Self-Expression?']
+   ```
+
+   기존에 4번째, 5번째 샘플에서는 Unknown 값이 있었는데 현재 제거가 된 것을 확인하였다.
+   이제 데이터 전처리를 수행한다.
+   여기서 선택한 전처리는 구두점 제거와 단어의 소문자화이다.
+   전처리를 수행하고, 다시 샘플 5개를 출력한다.
+
+   ```python
+   def repreprocessing(s):
+       s=s.encode("utf8").decode("ascii",'ignore')
+       return ''.join(c for c in s if c not in punctuation).lower() # 구두점 제거와 동시에 소문자화
+   
+   text = [repreprocessing(x) for x in headline]
+   text[:5]
+   ```
+
+   ```python
+   ['former nfl cheerleaders settlement offer 1 and a meeting with goodell',
+    'epa to unveil a new rule its effect less science in policymaking',
+    'the new noma explained',
+    'how a bag of texas dirt  became a times tradition',
+    'is school a place for selfexpression']
+   ```
+
+   기존의 출력과 비교하면 모든 단어들이 소문자화되었으며 N.F.L이나 Cheerleaders’ 등과 같이 기존에 구두점이 붙어있던 단어들에서 구두점이 제거되었다.
+   이제 단어 집합(vocabulary)을 만들고 크기를 확인한다.
+
+   ```python
+   t = Tokenizer()
+   t.fit_on_texts(text)
+   vocab_size = len(t.word_index) + 1
+   print('단어 집합의 크기 : %d' % vocab_size)
+   ```
+
+   ```python
+   단어 집합의 크기 : 3494
+   ```
+
+   총 3,494개의 단어가 존재한다.
+   이제 정수 인코딩과 동시에 하나의 문장을 여러 줄로 분해하여 훈련 데이터를 구성한다.
+
+   ```python
+   sequences = list()
+   
+   for line in text: # 1,214 개의 샘플에 대해서 샘플을 1개씩 가져온다.
+       encoded = t.texts_to_sequences([line])[0] # 각 샘플에 대한 정수 인코딩
+       for i in range(1, len(encoded)):
+           sequence = encoded[:i+1]
+           sequences.append(sequence)
+   
+   sequences[:11] # 11개의 샘플 출력
+   ```
+
+   ```python
+   [[99, 269], # former nfl
+    [99, 269, 371], # former nfl cheerleaders
+    [99, 269, 371, 1115], # former nfl cheerleaders settlement
+    [99, 269, 371, 1115, 582], # former nfl cheerleaders settlement offer
+    [99, 269, 371, 1115, 582, 52], # 'former nfl cheerleaders settlement offer 1
+    [99, 269, 371, 1115, 582, 52, 7], # former nfl cheerleaders settlement offer 1 and
+    [99, 269, 371, 1115, 582, 52, 7, 2], # ... 이하 생략 ...
+    [99, 269, 371, 1115, 582, 52, 7, 2, 372],
+    [99, 269, 371, 1115, 582, 52, 7, 2, 372, 10],
+    [99, 269, 371, 1115, 582, 52, 7, 2, 372, 10, 1116], # 모든 단어가 사용된 완전한 첫번째 문장
+    # 바로 위의 줄 : former nfl cheerleaders settlement offer 1 and a meeting with goodell
+    [100, 3]] # epa to에 해당되며 두번째 문장이 시작됨.
+   ```
+
+   이해를 돕기 위해 출력 결과에 주석을 추가했다.
+   왜 하나의 문장을 저렇게 나눌까.
+   예를 들어 '경마장에 있는 말이 뛰고 있다'라는 문장 하나가 있을 때, 최종적으로 원하는 훈련 데이터의 형태는 다음과 같다.
+   하나의 단어를 예측하기 위해 이전에 등장한 단어들을 모두 참고하는 것이다.
+
+   | samples |            X            |  y   |
+   | :-----: | :---------------------: | :--: |
+   |    1    |        경마장에         | 있는 |
+   |    2    |      경마장에 있는      | 말이 |
+   |    3    |   경마장에 있는 말이    | 뛰고 |
+   |    4    | 경마장에 있는 말이 뛰고 | 있다 |
+
+   위의 sequences는 모든 문장을 각 단어가 각 시점(time step)마다 하나씩 추가적으로 등장하는 형태로 만들기는 했지만, 아직 예측할 단어에 해당되는 레이블을 분리하는 작업까지는 수행하지 않은 상태이다.
+   어떤 정수가 어떤 단어를 의미하는지 알아보기 위해 인덱슬로부터 단어를 찾는 index_to_word를 만든다.
+
+   ```python
+   index_to_word={}
+   for key, value in t.word_index.items(): # 인덱스를 단어로 바꾸기 위해 index_to_word를 생성
+       index_to_word[value] = key
+   
+   print('빈도수 상위 582번 단어 : {}'.format(index_to_word[582]))
+   ```
+
+   ```python
+   빈도수 상위 582번 단어 : offer
+   ```
+
+   582이라는 인덱스를 가진 단어는 본래 offer이라는 단어였다.
+   원한다면 다른 숫자로도 시도해보자.
+   이제 y 데이터를 분리하기 전에 전체 샘플의 길이를 동일하게 만드는 패딩 작업을 수행한다.
+   패딩 작업을 수행하기 전에 가장 긴 샘플의 길이를 확인한다.
+
+   ```python
+   max_len=max(len(l) for l in sequences)
+   print('샘플의 최대 길이 : {}'.format(max_len))
+   ```
+
+   ```python
+   샘플의 최대 길이 : 24
+   ```
+
+   가장 긴 샘플의 길이인 24로 모든 샘플의 길이를 패딩하자.
+
+   ```python
+   sequences = pad_sequences(sequences, maxlen=max_len, padding='pre')
+   print(sequences[:3])
+   ```
+
+   ```python
+   [[ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0    0    0   99  269]
+    [ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0    0   99  269  371]
+    [ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0   99  269  371 1115]
+   ```
+
+   padding='pre'를 설정하여 샘플의 길이가 24보다 짧은 경우에 앞에 0으로 패딩되었다.
+   이제 맨 우측 단어만 레이블로 분리한다.
+
+   ```python
+   sequences = np.array(sequences)
+   X = sequences[:,:-1]
+   y = sequences[:,-1]
+   ```
+
+   ```python
+   print(X[:3])
+   ```
+
+   ```python
+   [[ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0    0    0   99]
+    [ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0    0   99  269]
+    [ 0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0  0   99  269  371]
+   ```
+
+   훈련 데이터 X에서 3개의 샘플만 출력해보았는데, 맨 우측에 있던 정수값 269, 371, 1115가 사라진 것을 볼 수 있다.
+   뿐만 아니라, 각 샘플의 길이가 24에서 23으로 줄었다.
+
+   ```python
+   print(y[:3]) # 레이블
+   ```
+
+   ```python
+   [ 269  371 1115]
+   ```
+
+   훈련 데이터 y 중 3개의 샘플만 출력해보았는데, 기존 훈련 데이터에서 맨 우측에 있던 정수들이 별도로 저장되었다.
+
+   ```python
+   y = to_categorical(y, num_classes=vocab_size)
+   ```
+
+   레이블 데이터 y에 대해서 원-핫 인코딩을 수행하였다.
+   이제 모델을 설계하자.
+
+2. 모델 설계하기
+
+   ```python
+   from tensorflow.keras.models import Sequential
+   from tensorflow.keras.layers import Embedding, Dense, LSTM
+   ```
+
+   ```python
+   model = Sequential()
+   model.add(Embedding(vocab_size, 10, input_length=max_len-1))
+   # y데이터를 분리하였으므로 이제 X데이터의 길이는 기존 데이터의 길이 - 1
+   model.add(LSTM(128))
+   model.add(Dense(vocab_size, activation='softmax'))
+   model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+   model.fit(X, y, epochs=200, verbose=2)
+   ```
+
+   각 단어의 임베딩 벡터는 10차원을 가지고, 128의 은닉 상태 크기를 가지는 LSTM을 사용한다.
+   문장을 생성하는 함수 sentence_generation을 만들어서 문장을 생성해보자.
+
+   ```python
+   def sentence_generation(model, t, current_word, n): # 모델, 토크나이저, 현재 단어, 반복할 횟수
+       init_word = current_word # 처음 들어온 단어도 마지막에 같이 출력하기위해 저장
+       sentence = ''
+       for _ in range(n): # n번 반복
+           encoded = t.texts_to_sequences([current_word])[0] # 현재 단어에 대한 정수 인코딩
+           encoded = pad_sequences([encoded], maxlen=23, padding='pre') # 데이터에 대한 패딩
+           result = model.predict_classes(encoded, verbose=0)
+       # 입력한 X(현재 단어)에 대해서 y를 예측하고 y(예측한 단어)를 result에 저장.
+           for word, index in t.word_index.items(): 
+               if index == result: # 만약 예측한 단어와 인덱스와 동일한 단어가 있다면
+                   break # 해당 단어가 예측 단어이므로 break
+           current_word = current_word + ' '  + word # 현재 단어 + ' ' + 예측 단어를 현재 단어로 변경
+           sentence = sentence + ' ' + word # 예측 단어를 문장에 저장
+       # for문이므로 이 행동을 다시 반복
+       sentence = init_word + sentence
+       return sentence
+   ```
+
+   ```python
+   print(sentence_generation(model, t, 'i', 10))
+   # 임의의 단어 'i'에 대해서 10개의 단어를 추가 생성
+   ```
+
+   ```python
+   i disapprove of school vouchers can i still apply for them
+   ```
+
+   ```python
+   print(sentence_generation(model, t, 'how', 10))
+   # 임의의 단어 'how'에 대해서 10개의 단어를 추가 생성
+   ```
+
+   ```python
+   how to make facebook more accountable will so your neighbor chasing
+   ```
+
+---
+
+### 6. 글자 단위 RNN(Char RNN)
+
