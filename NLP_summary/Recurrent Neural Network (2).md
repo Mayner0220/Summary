@@ -628,3 +628,22 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
 
 ### 6. 글자 단위 RNN(Char RNN)
 
+이전 시점의 예측 글자를 다음 시점의 입력으로 사용하는 글자 단위 RNN 언어 모델을 구현해보자.
+앞서 배운 단어 단위 RNN 언어 모델과 다른 점은 단어 단위가 아니라 글자 단위를 입/출력으로 사용하므로 임베딩층(embedding layer)을 여기서는 사용하지 않는다.
+여기서는 언어 모델의 훈련 과정과 테스트 과정의 차이를 이해하는데 초점을 둔다.
+
+- 다운로드 링크:  http://www.gutenberg.org/files/11/11-0.txt
+
+고전 소설들은 저작권에 보호받지 않으므로, 무료로 쉽게 다운로드 받을 수 있는 좋은 훈련 데이터이다.
+위의 링크에서 '이상한 나라의 앨리스(Alice's Adventures in Wonderland)'라는 소설을 다운로드한다.
+우선, 파일을 불러오고 간단한 전처리를 수행한다.
+
+1. 데이터에 대한 이해와 전처리
+
+   ```python
+   import numpy as np
+   import urllib.request
+   from tensorflow.keras.utils import to_categorical
+   ```
+
+   
