@@ -646,4 +646,32 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
    from tensorflow.keras.utils import to_categorical
    ```
 
+   ```python
+   urllib.request.urlretrieve("http://www.gutenberg.org/files/11/11-0.txt", filename="11-0.txt")
+   f = open('11-0.txt', 'rb')
+   lines=[]
+   for line in f: # 데이터를 한 줄씩 읽는다.
+       line=line.strip() # strip()을 통해 \r, \n을 제거한다.
+       line=line.lower() # 소문자화.
+       line=line.decode('ascii', 'ignore') # \xe2\x80\x99 등과 같은 바이트 열 제거
+       if len(line) > 0:
+           lines.append(line)
+   f.close()
+   ```
+
+   간단한 전처리가 수행된 결과가 lines란 이름의 리스트에 저장되었다.
+   리스트에서 5개의 원소만 출력해보자.
+
+   ```python
+   lines[:5]
+   ```
+
+   ```python
+   ['project gutenbergs alices adventures in wonderland, by lewis carroll',
+    'this ebook is for the use of anyone anywhere at no cost and with',
+    'almost no restrictions whatsoever.  you may copy it, give it away or',
+    're-use it under the terms of the project gutenberg license included',
+    'with this ebook or online at www.gutenberg.org']
+   ```
+
    
