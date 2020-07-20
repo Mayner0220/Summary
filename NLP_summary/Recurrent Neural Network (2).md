@@ -674,4 +674,19 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
     'with this ebook or online at www.gutenberg.org']
    ```
 
+   각 원소는 문자열로 구성되어져 있는데, 특별히 의미있게 문장 토큰화가 된 상태는 아니다.
+   이를 하나의 문자열로 통합하자.
+
+   ```python
+   text = ' '.join(lines)
+   print('문자열의 길이 또는 총 글자의 개수: %d' % len(text))
+   ```
+
+   ```python
+   문자열의 길이 또는 총 글자의 개수: 158783
+   ```
+
+   하나의 문자열로 통합되었고, 문자열의 길이는 약 15만 8천이다.
+   일부를 출력해보자.
+
    
