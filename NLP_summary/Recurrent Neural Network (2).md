@@ -761,3 +761,143 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
 
    만약 문장의 길이를 60으로 한다면 15만 8천을 60으로 나눈 수가 샘플의 수가 된다.
    여기서는 총 샘플의 수가 2,646개이다.
+   
+   ```python
+   train_X = []
+   train_y = []
+   
+   for i in range(n_samples): # 2,646번 수행
+       X_sample = text[i * seq_length: (i + 1) * seq_length]
+       # 0:60 -> 60:120 -> 120:180로 loop를 돌면서 문장 샘플을 1개씩 가져온다.
+       X_encoded = [char_to_index[c] for c in X_sample] # 하나의 문장 샘플에 대해서 정수 인코딩
+       train_X.append(X_encoded)
+   
+       y_sample = text[i * seq_length + 1: (i + 1) * seq_length + 1] # 오른쪽으로 1칸 쉬프트한다.
+       y_encoded = [char_to_index[c] for c in y_sample]
+       train_y.append(y_encoded)
+   ```
+   
+   train_X와 train_y의 첫번째 샘플과 두번째 샘플을 출력하여 데이터의 구성을 확인해보자.
+   
+   ```python
+   print(train_X[0])
+   ```
+   
+   ```python
+   [44, 46, 43, 38, 33, 31, 48, 0, 35, 49, 48, 33, 42, 30, 33, 46, 35, 47, 0, 29, 40, 37, 31, 33, 47, 0, 29, 32, 50, 33, 42, 48, 49, 46, 33, 47, 0, 37, 42, 0, 51, 43, 42, 32, 33, 46, 40, 29, 42, 32, 8, 0, 30, 53, 0, 40, 33, 51, 37, 47]
+   ```
+   
+   ```python
+   print(train_y[0])
+   ```
+   
+   ```python
+   [46, 43, 38, 33, 31, 48, 0, 35, 49, 48, 33, 42, 30, 33, 46, 35, 47, 0, 29, 40, 37, 31, 33, 47, 0, 29, 32, 50, 33, 42, 48, 49, 46, 33, 47, 0, 37, 42, 0, 51, 43, 42, 32, 33, 46, 40, 29, 42, 32, 8, 0, 30, 53, 0, 40, 33, 51, 37, 47, 0]
+   ```
+   
+   train_y[0]은 train_X[0]에서 오른쪽으로 한 칸 쉬프트 된 문장임을 알 수 있다.
+   
+   ```python
+   print(train_X[1])
+   ```
+   
+   ```python
+   [0, 31, 29, 46, 46, 43, 40, 40, 0, 48, 36, 37, 47, 0, 33, 30, 43, 43, 39, 0, 37, 47, 0, 34, 43, 46, 0, 48, 36, 33, 0, 49, 47, 33, 0, 43, 34, 0, 29, 42, 53, 43, 42, 33, 0, 29, 42, 53, 51, 36, 33, 46, 33, 0, 29, 48, 0, 42, 43, 0]
+   ```
+   
+   ```python
+   print(train_y[1])
+   ```
+   
+   ```python
+   [31, 29, 46, 46, 43, 40, 40, 0, 48, 36, 37, 47, 0, 33, 30, 43, 43, 39, 0, 37, 47, 0, 34, 43, 46, 0, 48, 36, 33, 0, 49, 47, 33, 0, 43, 34, 0, 29, 42, 53, 43, 42, 33, 0, 29, 42, 53, 51, 36, 33, 46, 33, 0, 29, 48, 0, 42, 43, 0, 31]
+   ```
+   
+   마찬가지로 train_y[1]은 train_X[1]에서 오른쪽으로 한 칸 쉬프트 된 문장임을 알 수 있다.
+   이제 train_X와 train_y에 대해서 원-핫 인코딩을 수행한다.
+   글자 단위 RNN에서는 입력 시퀀스에 대해서 워드 임베딩을 하지 않는다.
+   다시 말해 임베딩층(embedding layer)을 사용하지 않을 것이므로, 입력 시퀀스인 train_X에 대해서도 원-핫 인코딩을 한다.
+   
+   ```python
+   train_X = to_categorical(train_X)
+   train_y = to_categorical(train_y)
+   ```
+   
+   ```python
+   print('train_X의 크기(shape) : {}'.format(train_X.shape)) # 원-핫 인코딩
+   print('train_y의 크기(shape) : {}'.format(train_y.shape)) # 원-핫 인코딩
+   ```
+   
+   ```python
+   train_X의 크기(shape) : (2646, 60, 55)
+   train_y의 크기(shape) : (2646, 60, 55)
+   ```
+   
+   train_X와 train_y의 크기는 2,646 * 60 * 55이다.
+   
+   ![img](https://wikidocs.net/images/page/22886/rnn_image6between7.PNG)
+   
+   이는 샘플의 수(No. of samples)가 2,646개, 입력 시퀀스의 길이(input_length)가 60, 각 벡터의 차원(input_dim)이 55임을 의미한다.
+   원-핫 벡터의 차원은 글자 집합의 크기인 55이어야 하므로 원-핫 인코딩이 수행되었음을 알 수 있다.
+   
+2. 모델 설계하기
+
+   ```python
+   from tensorflow.keras.models import Sequential
+   from tensorflow.keras.layers import Dense, LSTM, TimeDistributed
+   ```
+
+   ```python
+   model = Sequential()
+   model.add(LSTM(256, input_shape=(None, train_X.shape[2]), return_sequences=True))
+   model.add(LSTM(256, return_sequences=True))
+   model.add(TimeDistributed(Dense(vocab_size, activation='softmax')))
+   model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+   model.fit(train_X, train_y, epochs=80, verbose=2)
+   ```
+
+   ```python
+   model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+   model.fit(train_X, train_y, epochs=80, verbose=2)
+   ```
+
+   ```python
+   Epoch 1/80
+    - 17s - loss: 3.0753 - acc: 0.1831
+   ... 중략 ...
+   Epoch 80/80
+    - 18s - loss: 0.1855 - acc: 0.9535
+   ```
+
+   ```python
+   def sentence_generation(model, length):
+       ix = [np.random.randint(vocab_size)] # 글자에 대한 랜덤 인덱스 생성
+       y_char = [index_to_char[ix[-1]]] # 랜덤 익덱스로부터 글자 생성
+       print(ix[-1],'번 글자',y_char[-1],'로 예측을 시작!')
+       X = np.zeros((1, length, vocab_size)) 
+       # (1, length, 55) 크기의 X 생성. 즉, LSTM의 입력 시퀀스 생성
+   
+       for i in range(length):
+           X[0][i][ix[-1]] = 1 
+           # X[0][i][예측한 글자의 인덱스] = 1, 즉, 예측 글자를 다음 입력 시퀀스에 추가
+           print(index_to_char[ix[-1]], end="")
+           ix = np.argmax(model.predict(X[:, :i+1, :])[0], 1)
+           y_char.append(index_to_char[ix[-1]])
+       return ('').join(y_char)
+   ```
+
+   ```python
+   sentence_generation(model, 100)
+   ```
+
+   ```python
+   49 번 글자 u 로 예측을 시작!
+   ury-men would have done just as well. the twelve jurors were to say in that dide. he went on in a di'
+   ```
+
+---
+
+### 6.2 글자 단위 RNN(Char RNN)으로 텍스트 생성하기
+
+이번에는 다 대 일(many-to-one) 구조의 RNN을 글자 단위로 학습시키고, 텍스트 생성을 해보자.
+
