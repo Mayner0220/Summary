@@ -901,3 +901,221 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
 
 이번에는 다 대 일(many-to-one) 구조의 RNN을 글자 단위로 학습시키고, 텍스트 생성을 해보자.
 
+1. 데이터에 대한 이해와 전처리
+
+   ```
+   import numpy as np
+   from tensorflow.utils import to_categorical
+   ```
+
+   다음과 같이 임의로 만든 노래 가사가 있다.
+
+   ```
+   text='''
+   I get on with life as a programmer,
+   I like to contemplate beer.
+   But when I start to daydream,
+   My mind turns straight to wine.
+   
+   Do I love wine more than beer?
+   
+   I like to use words about beer.
+   But when I stop my talking,
+   My mind turns straight to wine.
+   
+   I hate bugs and errors.
+   But I just think back to wine,
+   And I'm happy once again.
+   
+   I like to hang out with programming and deep learning.
+   But when left alone,
+   My mind turns straight to wine.
+   '''
+   ```
+
+   우선 위의 텍스트에 존재하는 단락 구분을 없애고 하나의 문자열로 재저장하자.
+
+   ```
+   tokens = text.split() # '\n 제거'
+   text = ' '.join(tokens)
+   print(text)
+   ```
+
+   ```
+   I get on with life as a programmer, I like to contemplate beer. But when I start to daydream, My mind turns straight to wine. Do I love wine more than beer? I like to use words about beer. But when I stop my talking, My mind turns straight to wine. I hate bugs and errors. But I just think back to wine, And I'm happy once again. I like to hang out with programming and deep learning. But when left alone, My mind turns straight to wine.
+   ```
+
+   단락 구분이 없어지고 하나의 문자열로 재저장된 것을 확인할 수 있다.
+   이제 이로부터 글자 집합을 만들어보자.
+   기존에는 중복을 제거한 단어들의 모음인 단어 집합(vocabulary)을 만들었으나, 이번에 만들 집합은 단어 집합이 아니라 글자 집합이다.
+
+   ```
+   char_vocab = sorted(list(set(text))) # 중복을 제거한 글자 집합 생성
+   print(char_vocab)
+   ```
+
+   ```
+   [' ', "'", ',', '.', '?', 'A', 'B', 'D', 'I', 'M', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'r', 's', 't', 'u', 'v', 'w', 'y']
+   ```
+
+   기존의 단어 단위의 집합이 아니라 알파벳 또는 구두점 등의 단위의 집합인 글자 집합이 생성되었다.
+
+   ```
+   vocab_size=len(char_vocab)
+   print ('글자 집합의 크기 : {}'.format(vocab_size))
+   ```
+
+   ```
+   글자 집합의 크기 : 33
+   ```
+
+   글자 집합의 크기는 33이다.
+
+   ```
+   char_to_index = dict((c, i) for i, c in enumerate(char_vocab)) # 글자에 고유한 정수 인덱스 부여
+   print(char_to_index)
+   ```
+
+   ```
+   {' ': 0, "'": 1, ',': 2, '.': 3, '?': 4, 'A': 5, 'B': 6, 'D': 7, 'I': 8, 'M': 9, 'a': 10, 'b': 11, 'c': 12, 'd': 13, 'e': 14, 'f': 15, 'g': 16, 'h': 17, 'i': 18, 'j': 19, 'k': 20, 'l': 21, 'm': 22, 'n': 23, 'o': 24, 'p': 25, 'r': 26, 's': 27, 't': 28, 'u': 29, 'v': 30, 'w': 31, 'y': 32}
+   ```
+
+   이번 실습의 글자 집합의 경우 훈련 데이터에 등장한 알파벳의 대, 소문자를 구분하고 구두점과 공백을 포함하였다.
+   이제 훈련에 사용할 문장 샘플들을 만들어보자.
+   여기서는 RNN을 이용한 생성한 텍스트 챕터와 유샇하게 데이터를 구성한다.
+   다만, 단위가 글자 단위라는 점이 다르다.
+   예를 들어 훈련 데이터에 student라는 단어가 있고, 입력 시퀀스의 길이를 5라고 한다면 입력 시퀀스와 예측해야하는 글자는 다음과 같이 구성된다.
+
+   ```
+   # Example) 5개의 입력 글자 시퀀스로부터 다음 글자 시퀀스를 예측. 즉, RNN의 time step은 5번
+   stude -> n 
+   tuden -> t
+   ```
+
+   여기서는 입력 시퀀스의 길이. 즉, 모든 샘플들의 길이가 10이 되도록 데이터를 구성해보자.
+   예측 대상이 되는 글자도 필요하므로 우선 길이가 11이 되도록 데이터를 구성한다.
+
+   ```
+   length = 11
+   sequences = []
+   for i in range(length, len(text)):
+       seq = text[i-length:i] # 길이 11의 문자열을 지속적으로 만든다.
+       sequences.append(seq)
+   print('총 훈련 샘플의 수: %d' % len(sequences))
+   ```
+
+   ```
+   총 훈련 샘플의 수: 426
+   ```
+
+   총 샘플의 수는 426개로 완성되었다.
+   이 중 10개만 출력해보자.
+
+   ```
+   sequences[:10]
+   ```
+
+   ```
+   ['I get on wi',
+    ' get on wit',
+    'get on with',
+    'et on with ',
+    't on with l',
+    ' on with li',
+    'on with lif',
+    'n with life',
+    ' with life ',
+    'with life a']
+   ```
+
+   첫번째 문장이었던 'I get on with life as a programmer,' 가 10개의 샘플로 분리된 것을 확인할 수 있다.
+   다른 문장들에 대해서도 sequences에 모두 저장되어져 있다.
+   원한다면, sequences[30:45] 등과 같이 인덱스 범위를 변경하여 출력해보자.
+   이제 앞서 만든 char_to_index를 사용하여 전체 데이터에 대해서 정수 인코딩을 수행한다.
+
+   ```
+   X = []
+   for line in sequences: # 전체 데이터에서 문장 샘플을 1개씩 꺼낸다.
+       temp_X = [char_to_index[char] for char in line] 
+       # 문장 샘플에서 각 글자에 대해서 정수 인코딩을 수행.
+       
+       X.append(temp_X)
+   ```
+
+   정수 인코딩 된 결과가 X에 저장되었다.
+   5개만 출력해보자.
+
+   ```
+   for line in X[:5]:
+       print(line)
+   ```
+
+   ```
+   [8, 0, 16, 14, 28, 0, 24, 23, 0, 31, 18]
+   [0, 16, 14, 28, 0, 24, 23, 0, 31, 18, 28]
+   [16, 14, 28, 0, 24, 23, 0, 31, 18, 28, 17]
+   [14, 28, 0, 24, 23, 0, 31, 18, 28, 17, 0]
+   [28, 0, 24, 23, 0, 31, 18, 28, 17, 0, 21]
+   ```
+
+   정상적으로 정수 인코딩이 수행되었다.
+   이제 예측 대상인 글자를 분리시켜주는 작업을 한다.
+   모든 샘플 문장에 대해서 맨 마지막 글자를 분리시켜준다.
+
+   ```
+   sequences = np.array(X)
+   X = sequences[:,:-1]
+   y = sequences[:,-1] # 맨 마지막 위치의 글자를 분리
+   ```
+
+   정상적으로 분리가 되었는지 X와 y 둘 다 5개씩 출력해보자.
+
+   ```
+   for line in X[:5]:
+       print(line)
+   ```
+
+   ```
+   [ 8  0 16 14 28  0 24 23  0 31]
+   [ 0 16 14 28  0 24 23  0 31 18]
+   [16 14 28  0 24 23  0 31 18 28]
+   [14 28  0 24 23  0 31 18 28 17]
+   [28  0 24 23  0 31 18 28 17  0]
+   ```
+
+   ```
+   print(y[:5])
+   ```
+
+   ```
+   [18 28 17  0 21]
+   ```
+
+   앞서 출력한 5개의 샘플에서 각각 맨 뒤의 글자였던 18, 28, 17, 0, 21이 별도로 분리되어 y에 저장되었다.
+   이제 X와 y에 대해서 원-핫 인코딩을 수행해보자.
+
+   ```
+   sequences = [to_categorical(x, num_classes=vocab_size) for x in X] # X에 대한 원-핫 인코딩
+   X = np.array(sequences)
+   y = to_categorical(y, num_classes=vocab_size) # y에 대한 원-핫 인코딩
+   ```
+
+   원-핫 인코딩이 수행되었는지 확인하기 위해 수행한 후의 X의 크기(shape)를 보자.
+
+   ```
+   print(X.shape)
+   ```
+
+   ```
+   (426, 10, 33)
+   ```
+
+   현재 X의 크기는 426 * 10 * 33이다.
+
+   ![img](https://wikidocs.net/images/page/22886/rnn_image6between7.PNG)
+
+   이는 샘플의 수(No. of samples)가 426개, 입력 시퀀스의 길이(input_length)가 10, 각 벡터의 차원(input_dim)이 33임을 의미한다.
+   원-핫 벡터의 차원은 글자 집합의 크기인 33이어야 하므로 X에 대해서 원-핫 인코딩이 수행되었음을 알 수 있다.
+
+2. 모델 설계하기
+
