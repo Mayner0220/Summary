@@ -1119,3 +1119,67 @@ source: https://wikidocs.net/48558, https://wikidocs.net/22886, https://wikidocs
 
 2. 모델 설계하기
 
+   ```python
+   from tensorflow.keras.models import Sequential
+   from tensorflow.keras.layers import Dense, LSTM
+   from tensorflow.keras.preprocessing.sequence import pad_sequences
+   ```
+
+   ```python
+   model = Sequential()
+   model.add(LSTM(80, input_shape=(X.shape[1], X.shape[2]))) # X.shape[1]은 25, X.shape[2]는 33
+   model.add(Dense(vocab_size, activation='softmax'))
+   ```
+
+   LSTM을 사용하고, 은닉 상태의 크기는 80, 그리고 출력층에 단어 집합의 크기만큼의 뉴런을 배치하여 모델을 설계한다.
+
+   ```python
+   model.compile(loss='categorical_crossentropy', optimizer='adam', metrics=['accuracy'])
+   model.fit(X, y, epochs=100, verbose=2)
+   ```
+
+   출력층의 활성화 함수로는 소프트맥스 함수, 손실 함수로는 크로스 엔트로피 함수를 사용하여 총 100번의 에포크를 수행한다.
+
+   ```python
+   Epoch 1/100
+    - 1s - loss: 3.4793 - acc: 0.0900
+   ... 중략 ...
+   Epoch 100/100
+    - 0s - loss: 0.2806 - acc: 0.9830
+   ```
+
+   문장을 생성하는 함수 sentence_generation을 만들어서 생성해본다.
+
+   ```python
+   def sentence_generation(model, char_to_index, seq_length, seed_text, n):
+   # 모델, 인덱스 정보, 문장 길이, 초기 시퀀스, 반복 횟수
+       init_text = seed_text # 문장 생성에 사용할 초기 시퀀스
+       sentence = ''
+   
+       for _ in range(n): # n번 반복
+           encoded = [char_to_index[char] for char in seed_text] # 현재 시퀀스에 대한 정수 인코딩
+           encoded = pad_sequences([encoded], maxlen=seq_length, padding='pre') # 데이터에 대한 패딩
+           encoded = to_categorical(encoded, num_classes=len(char_to_index))
+           result = model.predict_classes(encoded, verbose=0)
+           # 입력한 X(현재 시퀀스)에 대해서 y를 예측하고 y(예측한 글자)를 result에 저장.
+           for char, index in char_to_index.items(): # 만약 예측한 글자와 인덱스와 동일한 글자가 있다면
+               if index == result: # 해당 글자가 예측 글자이므로 break
+                   break
+           seed_text=seed_text + char # 현재 시퀀스 + 예측 글자를 현재 시퀀스로 변경
+           sentence=sentence + char # 예측 글자를 문장에 저장
+           # for문이므로 이 작업을 다시 반복
+   
+       sentence = init_text + sentence
+       return sentence
+   ```
+
+   ```python
+   print(sentence_generation(model, char_to_index, 10, 'I get on w', 80))
+   ```
+
+   ```python
+   I get on with life as a programmer, I like to hang out with programming and deep learning.
+   ```
+
+   두 개의 문장이 출력되었는데 훈련 데이터에서는 연속적으로 나온 적이 없는 두 문장임에도 모델이 임의로 잘 생성해낸 것 같다.
+
