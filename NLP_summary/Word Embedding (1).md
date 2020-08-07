@@ -103,5 +103,5 @@ Source: https://wikidocs.net/22644, https://wikidocs.net/33520, https://wikidocs
 
 ### 2.1 희소 표현(Sparse Representation)
 
-
+원-핫 인코딩을 통해서 나온 원-핫 벡터들은 표현하고자 하는 단어의 인덱스의 값만 1이고, 나머지 인덱스에는 전부 0으로 표현되는 벡터 표현 방법이었다.
 
