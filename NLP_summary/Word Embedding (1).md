@@ -131,3 +131,27 @@ Source: https://wikidocs.net/22644, https://wikidocs.net/33520, https://wikidocs
 ---
 
 ### 2.3 CBOW(Continue Bag of Words)
+
+Word2Vec에는 CBOW(Continue Bag of Words)와 Skip-Gram 두 가지 방식이 있다.
+CBOW는 주변에 있는 단어들을 가지고, 중간에 있는 단어들을 예측하는 방법이다.
+반대로, Skip-Gram은 중간에 있는 단어로 주변 단어들을 예측하는 방법이다.
+메커니즘 자체는 거의 동일하기 때문에 CBOW를 이해한다면 Skip-Gram도 손쉽게 이해 가능하다.
+우선 CBOW에 대해서 알아보자.
+이해를 위해 간소화된 형태의 CBOW로 설명한다.
+
+- 예문: "The fat cat sat on the mat"
+
+예를 들어서 갖고 있는 코퍼스에 위와 같은 문장이 있다고 하자.
+가운데 단어를 예측하는 것이 CBOW라고 했다.
+{"The", "fat", "cat", "on", "the", "mat"}으로부터 sat을 예측하는 것은 CBOW가 하는 일이다.
+이 때 예측해야 하는 단어 sat을 중심 단어(center word)라고 하고, 예측에 사용되는 단어들을 주변 단어(context word)라고 한다.
+
+중심 단어를 예측하기 위해서 앞, 뒤로 몇 개의 단어를 볼지 결정했다면 이 범위를 윈도우(window)라고 한다.
+예를 들어서 윈도우 크기가 2이고, 예측하고자 하는 중심 단어가 sat이라고 한다면 앞의 두 단어인 fat과 cat,그리고 뒤의 단어인 on, the을 참고한다.
+윈도우 크기가 n이라고 한다면, 실제 중심 단어를 예측하기 위해 참고하려고 하는 주변 단어의 개수는 2n이 될 것이다.
+
+![img](https://wikidocs.net/images/page/22660/%EB%8B%A8%EC%96%B4.PNG)
+
+윈도우 크기를 정했다면, 윈도우를 계속 움직여서 주변 단어와 중심 단어 선택을 바꿔가며 학습을 위한 데이터 셋을 만들 수 있는데, 이 방법을 슬라이딩 윈도우(sliding window)라고 한다.
+
+위 그림에서 좌측의 중심 단어와 주변 단어의 변화는 윈도우 크기가 2일 때, 슬라이딩 윈도우가 어떤 식으로 이루어지면서 데이터 셋을 만드는지 보여준다.
