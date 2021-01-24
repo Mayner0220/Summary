@@ -11,3 +11,6 @@
 
 - 기존의 Object Detection은 Classification 문제를 2단계로 나눠 검출(Two-Shot-Detection)하여 정확도가 높았지만, 네트워크를 여러번 호출하기에 속도는 매우 느렸습니다.
 - 하지만 YOLO는 One-Stage 검출기를 이용하여 조금은 정확도가 떨어지지만 엄청나게 빠른 검출기를 만들어 냈습니다. 즉, 하나의 이미지를 딱 한 번만 신경망을 통과시켜 빠른 속도의 검출기를 만들어낸 것입니다.
+
+### Description of YOLO :speech_balloon:
+
